@@ -3,9 +3,9 @@ package pl.edu.pw.elka.mbi.core.reads
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.NucleotideContigFragment
 
-object Reference {
-  def apply(rdd: RDD[NucleotideContigFragment]): RDD[((String, Long), Nucleotide)] = {
-    rdd.flatMap(fragment => {
+object ReferenceSequence {
+  def apply(reference: RDD[NucleotideContigFragment]): RDD[((String, Long), Nucleotide)] = {
+    reference.flatMap(fragment => {
       val name = fragment.getContig.getContigName
       var pos = fragment.getFragmentStartPosition
 
