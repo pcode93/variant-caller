@@ -5,7 +5,9 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.contig.NucleotideContigFragmentRDD
 import org.bdgenomics.adam.rdd.read.AlignmentRecordRDD
+import org.bdgenomics.adam.rdd.variation.VariantContextRDD
 import org.bdgenomics.formats.avro.AlignmentRecord
+import org.bdgenomics.utils.cli.SaveArgs
 import pl.edu.pw.elka.mbi.core.preprocessing.Preprocessor
 import pl.edu.pw.elka.mbi.core.reads.{ReferenceSequence, VariantDiscovery, Nucleotide}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
@@ -46,6 +48,6 @@ object VariantCaller {
     println("----------------CALLED VARIANTS---------------------")
     variants.foreach(println)
 
-
+    VariantContextRDD(variants, sequence.sequences, Seq()).saveAsVcf("aritificial.vcf", asSingleFile = true)
   }
 }
