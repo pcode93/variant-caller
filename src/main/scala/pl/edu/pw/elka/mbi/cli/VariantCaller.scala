@@ -39,10 +39,13 @@ object VariantCaller {
     reference.foreach(println)
 
     val observations = VariantDiscovery(rdd, reference)
-    println("----------------VARIANTS---------------------")
+    println("----------------COMPARISONS---------------------")
     observations.foreach(println)
 
+    val variants = ThresholdCaller(observations)
     println("----------------CALLED VARIANTS---------------------")
-    ThresholdCaller(observations).foreach(println)
+    variants.foreach(println)
+
+
   }
 }

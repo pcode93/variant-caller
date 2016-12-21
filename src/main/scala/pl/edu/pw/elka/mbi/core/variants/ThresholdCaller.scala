@@ -4,7 +4,7 @@ import org.apache.spark.rdd.RDD
 import pl.edu.pw.elka.mbi.core.reads.{Nucleotide, Allele}
 
 object ThresholdCaller {
-  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))]) = {
+  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))], threshold: Double = 0.2) = {
     variants
       .map(variant => (variant._2._2, variant._2._1))
       .groupByKey()
@@ -20,6 +20,7 @@ object ThresholdCaller {
           CalledVariant(reference.pos, reference.value, variant._3, ".", 0, variant._2, variant._1)
         }
       }
+      .filter(variant => variant.alleleCount.toDouble / variant.count.toDouble >= threshold)
   }
 }
 

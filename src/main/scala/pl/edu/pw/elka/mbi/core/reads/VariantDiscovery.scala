@@ -7,11 +7,9 @@ object VariantDiscovery {
 
   def apply(reads: RDD[AlignmentRecord], reference: RDD[((String, Long), Nucleotide)]) = {
     val observations = reads.flatMap(variantsFromRead).map(v => ((v.refName, v.pos), v))
-    val comparison = observations.join(reference)
-//    comparison.map {
-//      case ((name, pos), (variant, ref)) =>
-//    }
-    comparison
+    println("----------------VARIANTS---------------------")
+    observations.foreach(println)
+    observations.join(reference)
   }
 
   private def variantsFromRead(read: AlignmentRecord) = {
@@ -19,16 +17,22 @@ object VariantDiscovery {
     val sequence = read.getSequence
 
     alignments.foldLeft(IndexedSeq[Allele](), 0) {
-      case ((obs, index), alignment) => (obs ++ (alignment._1 match {
-        case 'M' => sequence.substring(index, alignment._2)
-                            .map(Allele(read.getContigName,
-                                        read.getStart + index,
-                                        ".",
-                                        _,
-                                        read.getMapq))
+      case ((obs, index), alignment) => alignment._1 match {
+        case 'M' => (obs ++ sequence
+                            .substring(index, index + alignment._2)
+                            .zipWithIndex
+                            .map {
+                              case (allele, i) => Allele(read.getContigName,
+                                                         read.getStart + index + i,
+                                                         ".",
+                                                         allele,
+                                                         read.getMapq)
+                            }, index + alignment._2)
 
-        case _ => IndexedSeq[Allele]()
-      }), alignment._2)
+        case 'D' => (IndexedSeq[Allele](), index)
+        case 'I' => (IndexedSeq[Allele](), index + alignment._2)
+        case _ => (IndexedSeq[Allele](), index)
+      }
     }._1
   }
 
