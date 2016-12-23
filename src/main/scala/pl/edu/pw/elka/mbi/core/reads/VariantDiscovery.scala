@@ -2,14 +2,23 @@ package pl.edu.pw.elka.mbi.core.reads
 
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.AlignmentRecord
+import pl.edu.pw.elka.mbi.cli.VariantCaller
+import pl.edu.pw.elka.mbi.core.Timers._
 
 object VariantDiscovery {
 
   def apply(reads: RDD[AlignmentRecord], reference: RDD[((String, Long), Nucleotide)]) = {
-    val observations = reads.flatMap(variantsFromRead).map(v => ((v.refName, v.pos), v))
-    println("----------------VARIANTS---------------------")
-    observations.foreach(println)
-    observations.join(reference)
+    VariantCaller.debug("----------------READS---------------------", reads.map(_.toString))
+
+    val observations = ReadAlleles.time {
+      reads.flatMap(variantsFromRead).map(v => ((v.refName, v.pos), v))
+    }
+
+    VariantCaller.debug("----------------VARIANTS---------------------", observations.map(_.toString))
+
+    JoinReadsWithReferences.time {
+      observations.join(reference)
+    }
   }
 
   private def variantsFromRead(read: AlignmentRecord) = {

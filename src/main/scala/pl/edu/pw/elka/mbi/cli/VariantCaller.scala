@@ -7,15 +7,24 @@ import org.bdgenomics.adam.rdd.contig.NucleotideContigFragmentRDD
 import org.bdgenomics.adam.rdd.read.AlignmentRecordRDD
 import org.bdgenomics.adam.rdd.variation.VariantContextRDD
 import org.bdgenomics.formats.avro.AlignmentRecord
-import org.bdgenomics.utils.cli.SaveArgs
 import pl.edu.pw.elka.mbi.core.preprocessing.Preprocessor
-import pl.edu.pw.elka.mbi.core.reads.{ReferenceSequence, VariantDiscovery, Nucleotide}
+import pl.edu.pw.elka.mbi.core.reads.{Nucleotide, ReferenceSequence, VariantDiscovery}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
+import pl.edu.pw.elka.mbi.core.Timers._
 
 object VariantCaller {
+  val DEBUG = true
+
+  def debug(header: String, text: RDD[String]) = {
+    if(DEBUG) {
+      println(header)
+      text foreach println
+    }
+  }
+
   def main(args: Array[String]) {
-    if (args.length < 1) {
-      System.err.println("at least one argument required, e.g. foo.sam")
+    if (args.length < 3) {
+      System.err.println("Specify reference file, read file and vcf file")
       System.exit(1)
     }
 
@@ -27,8 +36,12 @@ object VariantCaller {
                      //.set("spark.kryo.registrationRequired", "true")
 
     val sc = new SparkContext(conf)
-    val alignments: AlignmentRecordRDD = sc.loadAlignments(args(0))
-    val sequence: NucleotideContigFragmentRDD = sc.loadSequences(args(1))
+    val alignments: AlignmentRecordRDD = LoadReference.time {
+      sc.loadAlignments(args(0))
+    }
+    val sequence: NucleotideContigFragmentRDD = LoadReads.time {
+      sc.loadSequences(args(1))
+    }
 
     val rdd: RDD[AlignmentRecord] = new Preprocessor(alignments)
                                           //.realignIndels()
@@ -37,17 +50,17 @@ object VariantCaller {
                                           .reads
 
     val reference: RDD[((String, Long), Nucleotide)] = ReferenceSequence(sequence.rdd)
-    println("----------------REFERENCE SEQUENCE---------------------")
-    reference.foreach(println)
+
+    debug("----------------REFERENCE SEQUENCE---------------------", reference.map(_.toString))
 
     val observations = VariantDiscovery(rdd, reference)
-    println("----------------COMPARISONS---------------------")
-    observations.foreach(println)
+
+    debug("----------------COMPARISONS---------------------", observations.map(_.toString))
 
     val variants = ThresholdCaller(observations)
-    println("----------------CALLED VARIANTS---------------------")
-    variants.foreach(println)
 
-    VariantContextRDD(variants, sequence.sequences, Seq()).saveAsVcf("aritificial.vcf", asSingleFile = true)
+    debug("----------------CALLED VARIANTS---------------------", variants.map(_.toString))
+
+    VariantContextRDD(variants, sequence.sequences, Seq()).saveAsVcf(args(2), asSingleFile = true)
   }
 }

@@ -2,9 +2,10 @@ package pl.edu.pw.elka.mbi.core.reads
 
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.NucleotideContigFragment
+import pl.edu.pw.elka.mbi.core.Timers._
 
 object ReferenceSequence {
-  def apply(reference: RDD[NucleotideContigFragment]): RDD[((String, Long), Nucleotide)] = {
+  def apply(reference: RDD[NucleotideContigFragment]): RDD[((String, Long), Nucleotide)] = ReferenceAlleles.time {
     reference.flatMap(fragment => {
       val name = fragment.getContig.getContigName
       var pos = fragment.getFragmentStartPosition

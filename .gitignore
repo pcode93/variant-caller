@@ -3,3 +3,5 @@ target
 adam.log
 *.iml
 .idea
+*.vcf
+.*.vcf.crc

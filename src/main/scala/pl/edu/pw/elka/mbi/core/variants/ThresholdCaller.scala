@@ -2,45 +2,53 @@ package pl.edu.pw.elka.mbi.core.variants
 
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.VariantContext
-import org.bdgenomics.formats.avro.{Genotype, Variant}
+import org.bdgenomics.formats.avro.{GenotypeAllele, Genotype, Variant}
 import pl.edu.pw.elka.mbi.core.reads.{Nucleotide, Allele}
+import scala.collection.JavaConverters.seqAsJavaListConverter
+import pl.edu.pw.elka.mbi.core.Timers._
 
 object ThresholdCaller {
-  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))], threshold: Double = 0.2): RDD[VariantContext] = {
+  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))], threshold: Double = 0.2): RDD[VariantContext] = CallVariants.time {
     variants
       .map(variant => (variant._2._2, variant._2._1))
       .groupByKey()
       .map {
         case (reference, alleles) => {
-          val variant = alleles.foldLeft(0, 0, "") {
-            case ((count, alleleCount, alleleVals), allele) => (count + 1,
-                if (allele.value != reference.value) alleleCount + 1 else alleleCount,
-                if (allele.value != reference.value && !alleleVals.contains(allele.value))
-                  alleleVals + allele.value else alleleVals)
-          }
+            val count: Double = alleles.size
+            val refAlleles = alleles.filter(_.value == reference.value)
 
-          CalledVariant(reference.pos, reference.value, variant._3, ".", 0, variant._2, variant._1)
+            try {
+              val call = alleles
+                .filter(_.value != reference.value)
+                .groupBy(_.value)
+                .filter(_._2.size.toDouble / count >= threshold)
+                .maxBy(_._2.size)
+
+              val variant = Variant.newBuilder()
+                .setReferenceAllele(reference.value.toString)
+                .setAlternateAllele(call._1.toString)
+                .setContigName(reference.pos._1)
+                .setStart(reference.pos._2)
+                .setEnd(reference.pos._2 + 1)
+                .build()
+
+              val genotypes = Seq(Genotype.newBuilder()
+                  .setVariant(variant)
+                  .setContigName(reference.pos._1)
+                  .setStart(reference.pos._2)
+                  .setEnd(reference.pos._2 + 1)
+                  .setAlleles(List(GenotypeAllele.Alt).asJava)
+                  .setReferenceReadDepth(refAlleles.size)
+                  .setAlternateReadDepth(call._2.size)
+                  .build())
+
+              Some(VariantContext(variant, genotypes)): Option[VariantContext]
+            } catch {
+              case e: UnsupportedOperationException => None: Option[VariantContext]
+            }
         }
       }
-      .filter(variant => variant.alleleCount.toDouble / variant.count.toDouble >= threshold)
-      .flatMap(variant => variant.alleles
-                                  .split("")
-                                  .map(Variant.newBuilder()
-                                              .setReferenceAllele(variant.reference.toString)
-                                              .setAlternateAllele(_)
-                                              .setContigName(variant.pos._1)
-                                              .setStart(variant.pos._2)
-                                              .setEnd(variant.pos._2 + 1)
-                                              .build()))
-      .map(variant => VariantContext(variant))
+      .filter(_.isDefined)
+      .map(_.get)
   }
-}
-
-case class CalledVariant(pos: (String, Long),
-                         reference: Char,
-                         alleles: String,
-                         id: String,
-                         quality: Int,
-                         alleleCount: Int,
-                         count: Int) extends Serializable {
 }
