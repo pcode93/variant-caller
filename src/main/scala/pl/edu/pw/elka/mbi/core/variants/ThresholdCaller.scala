@@ -8,7 +8,9 @@ import scala.collection.JavaConverters.seqAsJavaListConverter
 import pl.edu.pw.elka.mbi.core.Timers._
 
 object ThresholdCaller {
-  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))], threshold: Double = 0.2): RDD[VariantContext] = CallVariants.time {
+  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))],
+            homozygousThreshold: Double = 0.8,
+            heterozygousThreshold: Double = 0.2): RDD[VariantContext] = CallVariants.time {
     variants
       .map(variant => (variant._2._2, variant._2._1))
       .groupByKey()
@@ -21,7 +23,7 @@ object ThresholdCaller {
               val call = alleles
                 .filter(_.value != reference.value)
                 .groupBy(_.value)
-                .filter(_._2.size.toDouble / count >= threshold)
+                .filter(_._2.size.toDouble / count >= heterozygousThreshold)
                 .maxBy(_._2.size)
 
               val variant = Variant.newBuilder()
@@ -37,9 +39,12 @@ object ThresholdCaller {
                   .setContigName(reference.pos._1)
                   .setStart(reference.pos._2)
                   .setEnd(reference.pos._2 + 1)
-                  .setAlleles(List(GenotypeAllele.Alt).asJava)
+                  .setAlleles(List(GenotypeAllele.Alt, if(call._2.size.toDouble / count >= homozygousThreshold) GenotypeAllele.Alt else GenotypeAllele.Ref).asJava)
                   .setReferenceReadDepth(refAlleles.size)
                   .setAlternateReadDepth(call._2.size)
+                  .setReadDepth(refAlleles.size + call._2.size)
+                  .setSampleId("sample")
+                  .setSampleDescription("sample")
                   .build())
 
               Some(VariantContext(variant, genotypes)): Option[VariantContext]

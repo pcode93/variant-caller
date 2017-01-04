@@ -6,7 +6,7 @@ import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.contig.NucleotideContigFragmentRDD
 import org.bdgenomics.adam.rdd.read.AlignmentRecordRDD
 import org.bdgenomics.adam.rdd.variation.VariantContextRDD
-import org.bdgenomics.formats.avro.AlignmentRecord
+import org.bdgenomics.formats.avro.{Sample, AlignmentRecord}
 import pl.edu.pw.elka.mbi.core.preprocessing.Preprocessor
 import pl.edu.pw.elka.mbi.core.reads.{Nucleotide, ReferenceSequence, VariantDiscovery}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
@@ -61,6 +61,6 @@ object VariantCaller {
 
     debug("----------------CALLED VARIANTS---------------------", variants.map(_.toString))
 
-    VariantContextRDD(variants, sequence.sequences, Seq()).saveAsVcf(args(2), asSingleFile = true)
+    VariantContextRDD(variants, sequence.sequences, Seq(new Sample("sample","sample",null))).saveAsVcf(args(2), asSingleFile = true)
   }
 }
