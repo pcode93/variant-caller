@@ -1,16 +1,20 @@
 package pl.edu.pw.elka.mbi.cli
 
+import java.io.PrintWriter
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.contig.NucleotideContigFragmentRDD
 import org.bdgenomics.adam.rdd.read.AlignmentRecordRDD
 import org.bdgenomics.adam.rdd.variation.VariantContextRDD
-import org.bdgenomics.formats.avro.{Sample, AlignmentRecord}
+import org.bdgenomics.formats.avro.{AlignmentRecord, Sample}
+import org.bdgenomics.utils.instrumentation.Metrics
+import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
+import pl.edu.pw.elka.mbi.core.model.Nucleotide
 import pl.edu.pw.elka.mbi.core.preprocessing.Preprocessor
-import pl.edu.pw.elka.mbi.core.reads.{Nucleotide, ReferenceSequence, VariantDiscovery}
+import pl.edu.pw.elka.mbi.core.reads.{ReferenceSequence, VariantDiscovery}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
-import pl.edu.pw.elka.mbi.core.Timers._
 
 object VariantCaller {
   val DEBUG = true
@@ -36,10 +40,13 @@ object VariantCaller {
                      //.set("spark.kryo.registrationRequired", "true")
 
     val sc = new SparkContext(conf)
-    val alignments: AlignmentRecordRDD = LoadReference.time {
+
+    Metrics.initialize(sc)
+
+    val alignments: AlignmentRecordRDD = LoadReads.time {
       sc.loadAlignments(args(0))
     }
-    val sequence: NucleotideContigFragmentRDD = LoadReads.time {
+    val sequence: NucleotideContigFragmentRDD = LoadReference.time {
       sc.loadSequences(args(1))
     }
 
@@ -61,6 +68,10 @@ object VariantCaller {
 
     debug("----------------CALLED VARIANTS---------------------", variants.map(_.toString))
 
-    VariantContextRDD(variants, sequence.sequences, Seq(new Sample("sample","sample",null))).saveAsVcf(args(2), asSingleFile = true)
+    VariantContextRDD(variants,
+                      sequence.sequences,
+                      Seq(new Sample("sample","sample",null))).saveAsVcf(args(2), asSingleFile = true)
+
+    Metrics.print(new PrintWriter(System.out), None)
   }
 }

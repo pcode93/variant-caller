@@ -2,7 +2,8 @@ package pl.edu.pw.elka.mbi.core.reads
 
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.NucleotideContigFragment
-import pl.edu.pw.elka.mbi.core.Timers._
+import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
+import pl.edu.pw.elka.mbi.core.model.Nucleotide
 
 object ReferenceSequence {
   def apply(reference: RDD[NucleotideContigFragment]): RDD[((String, Long), Nucleotide)] = ReferenceAlleles.time {
@@ -19,7 +20,5 @@ object ReferenceSequence {
   }
 }
 
-case class Nucleotide(pos: (String, Long), value: Char) extends Serializable {
 
-}
 

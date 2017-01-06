@@ -1,4 +1,4 @@
-package pl.edu.pw.elka.mbi.core
+package pl.edu.pw.elka.mbi.core.instrumentation
 
 import org.bdgenomics.utils.instrumentation.Metrics
 

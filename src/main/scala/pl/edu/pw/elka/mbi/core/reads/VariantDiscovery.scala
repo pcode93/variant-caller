@@ -3,7 +3,9 @@ package pl.edu.pw.elka.mbi.core.reads
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.AlignmentRecord
 import pl.edu.pw.elka.mbi.cli.VariantCaller
-import pl.edu.pw.elka.mbi.core.Timers._
+import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
+import pl.edu.pw.elka.mbi.core.model.{Allele, Nucleotide}
+import pl.edu.pw.elka.mbi.core.util.Util
 
 object VariantDiscovery {
 
@@ -22,41 +24,29 @@ object VariantDiscovery {
   }
 
   private def variantsFromRead(read: AlignmentRecord) = {
-    val alignments = parseCigar(read.getCigar)
+    val alignments = Util.parseCigar(read.getCigar)
     val sequence = read.getSequence
 
-    alignments.foldLeft(IndexedSeq[Allele](), 0) {
+    alignments.foldLeft(IndexedSeq[Allele](), (0,0)) {
       case ((obs, index), alignment) => alignment._1 match {
         case 'M' => (obs ++ sequence
-                            .substring(index, index + alignment._2)
+                            .substring(index._1, index._1 + alignment._2)
                             .zipWithIndex
                             .map {
                               case (allele, i) => Allele(read.getContigName,
-                                                         read.getStart + index + i,
+                                                         read.getStart + index._2 + i,
                                                          ".",
                                                          allele,
                                                          read.getMapq)
-                            }, index + alignment._2)
+                            }, (index._1 + alignment._2, index._2 + alignment._2))
 
-        case 'D' => (IndexedSeq[Allele](), index)
-        case 'I' => (IndexedSeq[Allele](), index + alignment._2)
-        case _ => (IndexedSeq[Allele](), index)
+        case 'D' => (obs, (index._1, index._2 + alignment._2))
+        case 'I' => (obs, (index._1 + alignment._2, index._2 + alignment._2))
+        case _ => (obs, index)
       }
     }._1
   }
-
-  private def parseCigar(cigar: String) = {
-    cigar
-      .split("(?<=\\D)")
-      .map(part => (part(part.length - 1), part.substring(0, part.length - 1).toInt))
-  }
 }
 
-case class Allele(refName: String,
-                           pos: Long,
-                           id: String = ".",
-                           value: Char,
-                           quality: Int) extends Serializable {
 
-}
 

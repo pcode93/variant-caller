@@ -2,10 +2,11 @@ package pl.edu.pw.elka.mbi.core.variants
 
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.VariantContext
-import org.bdgenomics.formats.avro.{GenotypeAllele, Genotype, Variant}
-import pl.edu.pw.elka.mbi.core.reads.{Nucleotide, Allele}
+import org.bdgenomics.formats.avro.{Genotype, GenotypeAllele, Variant}
+import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
+import pl.edu.pw.elka.mbi.core.model.{Allele, Nucleotide}
+
 import scala.collection.JavaConverters.seqAsJavaListConverter
-import pl.edu.pw.elka.mbi.core.Timers._
 
 object ThresholdCaller {
   def apply(variants: RDD[((String, Long), (Allele, Nucleotide))],
@@ -39,7 +40,9 @@ object ThresholdCaller {
                   .setContigName(reference.pos._1)
                   .setStart(reference.pos._2)
                   .setEnd(reference.pos._2 + 1)
-                  .setAlleles(List(GenotypeAllele.Alt, if(call._2.size.toDouble / count >= homozygousThreshold) GenotypeAllele.Alt else GenotypeAllele.Ref).asJava)
+                  .setAlleles(List(GenotypeAllele.Alt,
+                                   if(call._2.size.toDouble / count >= homozygousThreshold)
+                                     GenotypeAllele.Alt else GenotypeAllele.Ref).asJava)
                   .setReferenceReadDepth(refAlleles.size)
                   .setAlternateReadDepth(call._2.size)
                   .setReadDepth(refAlleles.size + call._2.size)
