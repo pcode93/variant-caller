@@ -55,9 +55,8 @@ object VariantCaller {
 
     val rdd: RDD[AlignmentRecord] = new Preprocessor(alignments)
                                           //.realignIndels()
-                                          .filterByBaseQuality(0)
-                                          .filterByMappingQuality(0)
-                                          .reads
+                                          //.filterByMappingQuality(0)
+                                          .getReads
 
     val reference: RDD[((String, Long), ReferenceAllele)] = ReferenceSequence(sequence.rdd)
 
