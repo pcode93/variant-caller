@@ -17,23 +17,34 @@ import pl.edu.pw.elka.mbi.core.reads.{ReferenceSequence, VariantDiscovery}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
 
 object VariantCaller {
-  val DEBUG = false
+  private val ARGS = Map(
+    "DEBUG" -> ((arg: String) => arg.toBoolean),
+    "reference" -> ((arg: String) => arg),
+    "alignment" -> ((arg: String) => arg),
+    "out" -> ((arg: String) => arg),
+    "mapqThreshold" -> ((arg: String) => arg),
+    "homozygousThreshold" -> ((arg: String) => arg.toInt),
+    "heterozygousThreshold" -> ((arg: String) => arg.toInt)
+    )
+  private var args = Map[String, Any]()
 
   def debug(text: String) = {
-    if(DEBUG) {
+    if(args.get("DEBUG").isDefined) {
       println(text)
     }
   }
 
-  def debug(text: RDD[String]) = {
-    text foreach debug
-  }
-
   def main(args: Array[String]) {
-    if (args.length < 3) {
+    this.args = getArgs(args)
+
+    if (this.args.get("reference").isEmpty ||
+        this.args.get("alignment").isEmpty ||
+        this.args.get("out").isEmpty) {
       System.err.println("Specify reference file, read file and vcf file")
       System.exit(1)
     }
+
+    this.args = getArgs(args)
 
     val conf = new SparkConf()
                      .setAppName("Variant Caller")
@@ -47,10 +58,10 @@ object VariantCaller {
     Metrics.initialize(sc)
 
     val alignments: AlignmentRecordRDD = LoadReads.time {
-      sc.loadAlignments(args(0))
+      sc.loadAlignments(this.args("alignment").toString)
     }
     val sequence: NucleotideContigFragmentRDD = LoadReference.time {
-      sc.loadSequences(args(1))
+      sc.loadSequences(this.args("reference").toString)
     }
 
     val rdd: RDD[AlignmentRecord] = new Preprocessor(alignments)
@@ -72,8 +83,16 @@ object VariantCaller {
 
     VariantContextRDD(variants,
                       sequence.sequences,
-                      Seq(new Sample("sample","sample",null))).saveAsVcf(args(2), asSingleFile = true)
+                      Seq(new Sample("sample","sample",null))).saveAsVcf(this.args("out").toString, asSingleFile = true)
 
     Metrics.print(new PrintWriter(System.out), None)
+  }
+
+  private def getArgs(args: Array[String]) = {
+    args
+      .map(_.split('='))
+      .foldLeft(Map[String, Any]()) {
+        case (map, arg) => map + (arg(0) -> ARGS(arg(0))(arg(1)))
+      }
   }
 }
