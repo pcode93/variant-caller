@@ -4,24 +4,41 @@ import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.VariantContext
 import org.bdgenomics.formats.avro.{Genotype, GenotypeAllele, Variant}
 import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
-import pl.edu.pw.elka.mbi.core.model.{Allele, Nucleotide}
+import pl.edu.pw.elka.mbi.core.model.{AlignedAllele, ReferenceAllele}
 
 import scala.collection.JavaConverters.seqAsJavaListConverter
 
 object ThresholdCaller {
-  def apply(variants: RDD[((String, Long), (Allele, Nucleotide))],
+  /**
+    * Calls variants based on the thresholds.
+    * First all variants are grouped by ReferenceAlleles that they map to.
+    * For each group, alternate alleles are grouped together.
+    *
+    * Then groups of alternate alleles below the heterozygous threshold (this is determined by
+    * dividing the group size by the size of all variants mapped to the ReferenceAllele)
+    * get filtered out.
+    *
+    * Then a variant is called for the largest group of alternate alleles.
+    * If the group is above the homozygous threshold, the variant is homozygous.
+    * If not, the variant is heterozygous.
+    * @param variants
+    * @param homozygousThreshold
+    * @param heterozygousThreshold
+    * @return Called variants
+    */
+  def apply(variants: RDD[((String, Long), (AlignedAllele, ReferenceAllele))],
             homozygousThreshold: Double = 0.8,
             heterozygousThreshold: Double = 0.2): RDD[VariantContext] = CallVariants.time {
     variants
       .map(variant => (variant._2._2, variant._2._1))
       .groupByKey()
       .map {
-        case (reference, alleles) => {
-            val count: Double = alleles.size
-            val refAlleles = alleles.filter(_.value == reference.value)
+        case (reference, mapped) => {
+            val count: Double = mapped.size
+            val refAlleles = mapped.filter(_.value == reference.value)
 
             try {
-              val call = alleles
+              val call = mapped
                 .filter(_.value != reference.value)
                 .groupBy(_.value)
                 .filter(_._2.size.toDouble / count >= heterozygousThreshold)

@@ -11,19 +11,22 @@ import org.bdgenomics.adam.rdd.variation.VariantContextRDD
 import org.bdgenomics.formats.avro.{AlignmentRecord, Sample}
 import org.bdgenomics.utils.instrumentation.Metrics
 import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
-import pl.edu.pw.elka.mbi.core.model.Nucleotide
+import pl.edu.pw.elka.mbi.core.model.ReferenceAllele
 import pl.edu.pw.elka.mbi.core.preprocessing.Preprocessor
 import pl.edu.pw.elka.mbi.core.reads.{ReferenceSequence, VariantDiscovery}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
 
 object VariantCaller {
-  val DEBUG = true
+  val DEBUG = false
 
-  def debug(header: String, text: RDD[String]) = {
+  def debug(text: String) = {
     if(DEBUG) {
-      println(header)
-      text foreach println
+      println(text)
     }
+  }
+
+  def debug(text: RDD[String]) = {
+    text foreach debug
   }
 
   def main(args: Array[String]) {
@@ -56,17 +59,17 @@ object VariantCaller {
                                           .filterByMappingQuality(0)
                                           .reads
 
-    val reference: RDD[((String, Long), Nucleotide)] = ReferenceSequence(sequence.rdd)
+    val reference: RDD[((String, Long), ReferenceAllele)] = ReferenceSequence(sequence.rdd)
 
-    debug("----------------REFERENCE SEQUENCE---------------------", reference.map(_.toString))
+    debug("Mapped reference sequence")
 
     val observations = VariantDiscovery(rdd, reference)
 
-    debug("----------------COMPARISONS---------------------", observations.map(_.toString))
+    debug("Joined read alleles with reference alleles.")
 
     val variants = ThresholdCaller(observations)
 
-    debug("----------------CALLED VARIANTS---------------------", variants.map(_.toString))
+    debug("Called variants")
 
     VariantContextRDD(variants,
                       sequence.sequences,
