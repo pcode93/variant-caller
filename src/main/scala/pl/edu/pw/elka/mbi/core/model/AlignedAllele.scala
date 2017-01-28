@@ -1,9 +1,10 @@
 package pl.edu.pw.elka.mbi.core.model
 
-case class AlignedAllele(refName: String,
-                         pos: Long,
+import org.bdgenomics.adam.models.ReferencePosition
+
+case class AlignedAllele(pos: ReferencePosition,
                          id: String = ".",
                          value: String,
-                         quality: Int) extends Serializable {
+                         quality: Int) extends Allele(value){
 
 }

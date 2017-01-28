@@ -5,3 +5,11 @@ adam.log
 .idea
 *.vcf
 .*.vcf.crc
+*.bam
+*.bai
+*.sam
+*.sai
+*.fa
+*.fai
+*.sh
+*.gz

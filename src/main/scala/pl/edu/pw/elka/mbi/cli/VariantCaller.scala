@@ -4,6 +4,7 @@ import java.io.PrintWriter
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import org.bdgenomics.adam.models.ReferencePosition
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.contig.NucleotideContigFragmentRDD
 import org.bdgenomics.adam.rdd.read.AlignmentRecordRDD
@@ -11,7 +12,7 @@ import org.bdgenomics.adam.rdd.variation.VariantContextRDD
 import org.bdgenomics.formats.avro.{AlignmentRecord, Sample}
 import org.bdgenomics.utils.instrumentation.Metrics
 import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
-import pl.edu.pw.elka.mbi.core.model.ReferenceAllele
+import pl.edu.pw.elka.mbi.core.model.{Allele, ReferenceAllele}
 import pl.edu.pw.elka.mbi.core.preprocessing.Preprocessor
 import pl.edu.pw.elka.mbi.core.reads.{ReferenceSequence, VariantDiscovery}
 import pl.edu.pw.elka.mbi.core.variants.ThresholdCaller
@@ -32,6 +33,10 @@ object VariantCaller {
     if(args.get("DEBUG").isDefined) {
       println(text)
     }
+  }
+
+  def debugRDD(text: RDD[String]) = {
+    text foreach debug
   }
 
   def main(args: Array[String]) {
@@ -69,17 +74,11 @@ object VariantCaller {
                                           //.filterByMappingQuality(0)
                                           .getReads
 
-    val reference: RDD[((String, Long), ReferenceAllele)] = ReferenceSequence(sequence.rdd)
+    val reference: RDD[(ReferencePosition, Allele)] = ReferenceSequence(sequence.rdd)
 
-    debug("Mapped reference sequence")
+    val discovered = VariantDiscovery(rdd, reference)
 
-    val observations = VariantDiscovery(rdd, reference)
-
-    debug("Joined read alleles with reference alleles.")
-
-    val variants = ThresholdCaller(observations)
-
-    debug("Called variants")
+    val variants = ThresholdCaller(discovered)
 
     VariantContextRDD(variants,
                       sequence.sequences,
