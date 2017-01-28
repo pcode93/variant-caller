@@ -12,10 +12,10 @@ object Util {
   def parseCigar(cigar: String) = {
     cigar
       .split("(?<=\\D)")
-      .map(part => (part(part.length - 1),
-                    if(part.substring(0, part.length - 1) != "")
-                      part.substring(0, part.length - 1).toInt
-                    else 0))
-      .filter(_._2 != 0)
+      .map(part => {
+        val substr = part.substring(0, part.length - 1)
+        (part(part.length - 1), if(substr != "") substr.toInt else -1)
+      })
+      .filter(_._2 != -1)
   }
 }

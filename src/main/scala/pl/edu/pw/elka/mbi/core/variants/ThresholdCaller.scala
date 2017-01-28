@@ -11,11 +11,10 @@ import scala.collection.JavaConverters.seqAsJavaListConverter
 object ThresholdCaller {
   /**
     * Calls variants based on the thresholds.
-    * First all variants are grouped by ReferenceAlleles that they map to.
-    * For each group, alternate alleles are grouped together.
+    * For each position, alternate alleles are grouped together.
     *
     * Then groups of alternate alleles below the heterozygous threshold (this is determined by
-    * dividing the group size by the size of all variants mapped to the ReferenceAllele)
+    * dividing the group size by the size of all alleles mapped to the position)
     * get filtered out.
     *
     * Then a variant is called for the largest group of alternate alleles.
@@ -68,10 +67,12 @@ object ThresholdCaller {
                     .setContigName(pos.referenceName)
                     .setStart(pos.pos)
                     .setEnd(pos.pos + 1)
-                    .setAlleles(List(GenotypeAllele.Alt,
+                    .setAlleles(List(
+                      GenotypeAllele.Alt,
                       if (max._2.size.toDouble / count >= homozygousThreshold)
                         GenotypeAllele.Alt
-                      else GenotypeAllele.Ref).asJava)
+                      else GenotypeAllele.Ref
+                    ).asJava)
                     .setReferenceReadDepth(refCount)
                     .setAlternateReadDepth(max._2.size)
                     .setReadDepth(refCount + max._2.size)

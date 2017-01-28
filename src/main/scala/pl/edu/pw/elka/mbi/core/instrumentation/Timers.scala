@@ -7,7 +7,6 @@ object Timers extends Metrics {
   val LoadReads = timer("LoadReads")
   val ReferenceAlleles = timer("ReferenceAlleles")
   val ReadAlleles = timer("ReadAlleles")
-  val JoinReadsWithReferences = timer("JoinReadsWithReferences")
   val CallVariants = timer("CallVariants")
 }
 

@@ -11,12 +11,12 @@ import pl.edu.pw.elka.mbi.core.util.Util
 object VariantDiscovery {
 
   /**
-    * Gets variants from AlignmentRecords maps them to their positions in the sequence.
-    * Then joins those variants with the @reference,
-    * resulting in a RDD of variants and ReferenceAlleles mapped to the same positions.
-    * @param reads RDD of AlignmentRecords.
-    * @param reference RDD of ReferenceAlleles mapped to their positions in the sequence.
-    * @return RDD of variants and ReferenceAlleles mapped to their positions in the sequence.
+    * Gets alleles from reads.
+    * Joins alleles from reads with alleles from reference.
+    * Groups alleles by the positions that they map to.
+    * @param reads
+    * @param reference
+    * @return RDD of Alleles grouped by positions that they map to.
     */
   def apply(reads: RDD[AlignmentRecord],
             reference: RDD[(ReferencePosition, Allele)]): RDD[(ReferencePosition, Iterable[Allele])] = ReadAlleles.time {

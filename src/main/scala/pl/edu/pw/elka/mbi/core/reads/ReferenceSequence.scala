@@ -8,7 +8,7 @@ import pl.edu.pw.elka.mbi.core.model.{Allele, ReferenceAllele}
 
 object ReferenceSequence {
   /**
-    *
+    * Gets alleles from the reference sequence.
     * @param reference Reference sequence.
     * @return RDD of ReferenceAlleles mapped to their positions in the sequence.
     */
