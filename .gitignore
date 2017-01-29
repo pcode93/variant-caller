@@ -12,4 +12,5 @@ adam.log
 *.fa
 *.fai
 *.sh
+!variant-caller.sh
 *.gz
