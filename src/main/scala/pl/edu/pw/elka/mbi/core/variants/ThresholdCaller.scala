@@ -68,10 +68,10 @@ object ThresholdCaller {
                     .setStart(pos.pos)
                     .setEnd(pos.pos + 1)
                     .setAlleles(List(
-                      GenotypeAllele.Alt,
+                      GenotypeAllele.ALT,
                       if (max._2.size.toDouble / count >= homozygousThreshold)
-                        GenotypeAllele.Alt
-                      else GenotypeAllele.Ref
+                        GenotypeAllele.ALT
+                      else GenotypeAllele.REF
                     ).asJava)
                     .setReferenceReadDepth(refCount)
                     .setAlternateReadDepth(max._2.size)

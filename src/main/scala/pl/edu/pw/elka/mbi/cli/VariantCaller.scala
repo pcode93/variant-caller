@@ -8,7 +8,7 @@ import org.bdgenomics.adam.models.ReferencePosition
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.contig.NucleotideContigFragmentRDD
 import org.bdgenomics.adam.rdd.read.AlignmentRecordRDD
-import org.bdgenomics.adam.rdd.variation.VariantContextRDD
+import org.bdgenomics.adam.rdd.variant.VariantContextRDD
 import org.bdgenomics.formats.avro.{AlignmentRecord, Sample}
 import org.bdgenomics.utils.instrumentation.Metrics
 import org.kohsuke.args4j.{CmdLineParser, Argument, Option}
