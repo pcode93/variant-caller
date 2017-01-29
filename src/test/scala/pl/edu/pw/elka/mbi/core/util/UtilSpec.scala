@@ -2,7 +2,8 @@ package pl.edu.pw.elka.mbi.core.util
 
 import org.scalatest.FlatSpec
 
-class UtilTest extends FlatSpec {
+class UtilSpec extends FlatSpec {
+
   "Correctly parsed CIGAR String" should "return an array of tuples: (Operator, length)" in {
     assert(Util.parseCigar("1M1I") sameElements Array(('M', 1), ('I', 1)))
   }
