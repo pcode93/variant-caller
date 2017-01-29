@@ -2,10 +2,9 @@ package pl.edu.pw.elka.mbi.core.reads
 
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferencePosition
-import org.bdgenomics.adam.rich.RichAlignmentRecord
 import org.bdgenomics.formats.avro.AlignmentRecord
 import pl.edu.pw.elka.mbi.core.instrumentation.Timers._
-import pl.edu.pw.elka.mbi.core.model.{Allele, AlignedAllele}
+import pl.edu.pw.elka.mbi.core.model.{AlignedAllele, Allele}
 import pl.edu.pw.elka.mbi.core.util.Util
 
 object VariantDiscovery {
@@ -29,26 +28,33 @@ object VariantDiscovery {
   }
 
   private def mappedAllelesFromRead(read: AlignmentRecord) = {
-    val rich = RichAlignmentRecord(read)
     val alignments = Util.parseCigar(read.getCigar)
     val sequence = read.getSequence
 
-    alignments.foldLeft(IndexedSeq[AlignedAllele](), (0,0)) {
-      case ((obs, index), alignment) => alignment._1 match {
-        case 'M' | 'X' | '=' => (obs ++ sequence
-                            .substring(index._1, index._1 + alignment._2)
-                            .zipWithIndex
-                            .map {
-                              case (allele, i) => AlignedAllele(ReferencePosition(read.getContigName,
-                                                                read.getStart + index._2 + i),
-                                                                ".",
-                                                                allele.toString.toUpperCase,
-                                                                read.getMapq)
-                            }, (index._1 + alignment._2, index._2 + alignment._2))
+    alignments.foldLeft(IndexedSeq[AlignedAllele](), (0, 0)) {
+      case ((alleles, (readIndex, refIndex)), alignment) => alignment._1 match {
+        case 'M' | 'X' | '=' => (
+          alleles ++ 
+            sequence
+              .substring(readIndex, readIndex + alignment._2)
+              .zipWithIndex
+              .map {
+                case (allele, i) => AlignedAllele(
+                  ReferencePosition(
+                    read.getContigName,
+                    read.getStart + refIndex + i
+                  ),
+                  ".",
+                  allele.toString.toUpperCase,
+                  read.getMapq
+                )
+              },
+          (readIndex + alignment._2, refIndex + alignment._2)
+          )
 
-        case 'D' | 'N' => (obs, (index._1, index._2 + alignment._2))
-        case 'I' | 'S' => (obs, (index._1 + alignment._2, index._2))
-        case _ => (obs, index)
+        case 'D' | 'N' => (alleles, (readIndex, refIndex + alignment._2))
+        case 'I' | 'S' => (alleles, (readIndex + alignment._2, refIndex))
+        case _ => (alleles, (readIndex, refIndex))
       }
     }._1
   }
