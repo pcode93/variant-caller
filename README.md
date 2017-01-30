@@ -5,7 +5,7 @@ variant-caller.sh &lt;path to reference&gt; &lt;path to alignment&gt; &lt;output
 ###Options
 Name | Description
 ---- | -----------
--homozygousThreshold | Sets the homozygous thershold
+-homozygousThreshold | Sets the homozygous threshold
 -heterozygousThreshold | Sets the heterozygous threshold
 -mapq | Filters reads based on the given mapq value
 -debug | Turns on debug logging
